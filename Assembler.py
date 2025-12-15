@@ -43,6 +43,7 @@ startLine = True
 objectCode = True
 prog_size = 0
 start_loading_address = 0
+modified = []
 
 
 Xbit4set = 0X800000
@@ -201,7 +202,7 @@ def header():
     match('NUM')
     if pass1or2 == 2:
         if objectCode:
-            print('H'+symtable[tok].string+'   {:06X} {:06x}'.format(start_loading_address,prog_size))
+            print('H'+symtable[tok].string+'   {:06X} {:06X}'.format(start_loading_address,prog_size))
 
 
 def body():
@@ -220,16 +221,19 @@ def rest1():
         data()
 
 def stmt():
-    global locctr, startLine, inst, pass1or2
+    global locctr, startLine, inst, pass1or2, modified
     startLine = False
     tok = tokenval
     if pass1or2 == 2:
         inst = symtable[tokenval].att << 16
+        
     locctr += 3
     match('F3')
     
     if symtable[tok].string != 'RSUB':
         inst += symtable[tokenval].att
+        if pass1or2 == 1:
+            modified.append(locctr-3 + 1)
         match('ID')
         index()
     if pass1or2 == 2:
@@ -296,10 +300,12 @@ def rest2():
         error("Syntax Error")
 
 def tail():
-    global start_loading_address, prog_size
+    global start_loading_address, prog_size, modified
     match('END')
     if pass1or2 == 2:
         if objectCode:
+            for i in modified:
+                print('M{:06X} {:02X}'.format(i, 4))
             print('E{:06X}'.format(symtable[tokenval].att))
     match('ID')
     prog_size = locctr - start_loading_address
